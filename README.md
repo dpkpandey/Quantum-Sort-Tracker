@@ -2,7 +2,6 @@
 # Quantum-Inspired Object Tracking & Counting System (QSort-A)
 
 **Author:** Deepak Pandey  
-**Affiliation:** Humpty Doo Barramundi — R&D Division, Australia  
 **Independent Researcher — Quantum Motion & Tracking Systems**
 
 ---
@@ -166,6 +165,7 @@ Enables stable 60–120 FPS operation depending on hardware/GPU.
 
 # 8. File Structure
 QSort-A-Object-Tracker/
+
 ├── Mainfishcount_A_best.py # Main program
 ├── qsort_tracker_A.py # QSort-A tracker implementation
 ├── last1.engine # YOLO engine file
@@ -269,7 +269,10 @@ MIT License
 # 15. Acknowledgements
 
 Developed through real-world high-speed motion tracking challenges.  
-Special thanks to colleagues, mentors, and family for continuous support.
+Special thanks to colleagues, mentors, and family for continuous support. Special 
+thanks to R&D crew ( Neville Doyle, Bradly Jones, Jason Clark) of Humpty Doo Barramundi. All this 
+idea came after doing R&D fish counting project. 
+
 
 
 
