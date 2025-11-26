@@ -165,6 +165,111 @@ Enables stable 60–120 FPS operation depending on hardware/GPU.
 ---
 
 # 8. File Structure
+QSort-A-Object-Tracker/
+├── Mainfishcount_A_best.py # Main program
+├── qsort_tracker_A.py # QSort-A tracker implementation
+├── last1.engine # YOLO engine file
+├── ll.mp4 # Example footage
+├── results/ # Raw and processed video outputs
+└── docs/ # Theory, diagrams, notes
+
+
+---
+
+# 9. Usage
+
+Run the system:
+
+
+Features shown:
+
+- Real-time object tracking  
+- Object ID overlays  
+- Velocity, curvature, jerk visualisation  
+- Counting line  
+- Total object count  
+- Auto-saving raw + processed video (90 FPS)  
+
+---
+
+# 10. Application Domains
+
+QSort-A is general-purpose.
+
+### Biological Tracking
+- animals  
+- insects  
+- microscopic cells  
+- protein motion  
+- particle movement  
+
+### Industrial
+- robotics  
+- conveyor tracking  
+- automation QA  
+- machine vision  
+
+### Surveillance
+- pedestrians  
+- vehicles  
+- drones  
+- multi-object scenes  
+
+### Scientific Research
+- fluid dynamics  
+- Brownian motion  
+- multi-body interactions  
+- motion analysis  
+
+---
+
+# 11. Comparison with SORT/Kalman
+
+| SORT Limitations | QSort-A Advantages |
+|------------------|--------------------|
+| ID switches during flips | Behaviour-based jerk + curvature matching |
+| Overcounts when collapsing | Collapse-memory + freeze windows |
+| High reliance on IoU | Motion signature dominates |
+| New ID creation too easily | Frozen-ID spawning + behaviour restoration |
+| Fails on non-rigid motion | Multi-order physics-based modelling |
+| Unstable in dense scenes | Hybrid cost + motion constraints |
+
+QSort-A is robust in conditions where SORT fails.
+
+---
+
+# 12. Roadmap
+
+- QSort-B (trajectory-cluster matching)  
+- QSort-C (behaviour-signature dominant tracker)  
+- Multi-camera fusion  
+- RL-based long-term ID consistency  
+- Automatic dataset generation  
+- Embedded device optimisation (Jetson, Raspberry Pi 5)  
+- Web dashboard integration  
+- Behaviour classification modules  
+
+---
+
+# 13. Citation
+
+If you use QSort-A in research:
+Deepak Pandey, "Quantum-Inspired Multi-Motion Object Tracker (QSort-A)", 2025.
+
+
+---
+
+# 14. License
+
+MIT License  
+
+
+---
+
+# 15. Acknowledgements
+
+Developed through real-world high-speed motion tracking challenges.  
+Special thanks to colleagues, mentors, and family for continuous support.
 
 
 
