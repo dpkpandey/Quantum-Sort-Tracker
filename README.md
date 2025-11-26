@@ -59,4 +59,112 @@ QSort-A uses these ideas to track objects even in the presence of deformation, o
 # 3. Mathematical Framework
 
 Bounding box format:
+[x1, y1, x2, y2, confidence]
+
+
+Centre point:
+
+cx = (x1 + x2) / 2
+cy = (y1 + y2) / 2
+
+
+Motion history for a track:
+P = [(cx1, cy1), (cx2, cy2), ..., (cxn, cyn)]
+
+
+From history, QSort-A calculates:
+
+### Velocity
+
+
+v = Pn – P(n-1)
+|v| = speed
+
+
+### Acceleration
+a = v(n) – v(n-1)
+
+### Jerk
+j = a(n) – a(n-1)
+
+### Curvature κ
+Approximate curvature from velocity and acceleration:
+
+κ ≈ |v × a| / |v|^3
+
+These features form the motion signature:
+M = [vx, vy, |v|, |a|, |j|, κ]
+
+
+This signature is compared with new detections for identity continuity.
+
+---
+
+# 4. Cost Function and Matching
+
+QSort-A uses a hybrid cost model with the Hungarian algorithm.  
+Components include:
+
+1. **Distance cost**  
+2. **Velocity-match penalty**  
+3. **Jerk penalty (behaviour flips)**  
+4. **Curvature penalty**  
+5. **IoU as a minor rejection constraint**  
+
+This prevents identity switches even during deformation or occlusion.
+
+---
+
+# 5. Identity Preservation
+
+QSort-A includes three identity-preserving mechanisms.
+
+### 5.1 Collapse-Memory  
+When a track disappears briefly, its last location is saved.  
+If a new detection appears nearby within a small frame window, the old ID is restored.
+
+### 5.2 Freeze Window  
+After collapse, QSort-A freezes ID creation for a few frames around the same region.  
+This prevents “ID explosions” during shape collapse.
+
+### 5.3 Behaviour Matching  
+Identity is maintained if velocity, jerk, and curvature patterns match historical motion.
+
+These mechanisms allow stable long-term tracking of non-rigid objects.
+
+---
+
+# 6. Object Counting System
+
+Counting uses a **line-crossing model with tolerance bands**.
+
+- Count each ID only once  
+- Flip or shape deformation does not double-count  
+- Near-line motion without crossing is ignored  
+- Re-identification does not alter counts  
+
+This ensures accurate counting in high-speed, high-density situations.
+
+---
+
+# 7. Software Architecture
+
+Three-thread asynchronous architecture:
+
+### Capture Thread
+Continuous frame capture at camera FPS.
+
+### Processing Thread
+YOLO detection → QSort-A tracking → counting → overlay → video saving.
+
+### Display Thread
+Real-time GUI without blocking processing.
+
+Enables stable 60–120 FPS operation depending on hardware/GPU.
+
+---
+
+# 8. File Structure
+
+
 
