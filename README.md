@@ -2,6 +2,7 @@
 # Quantum-Inspired Object Tracking & Counting System (QSort-A)
 
 **Author:** Deepak Pandey  
+**Affiliation:** Humpty Doo Barramundi — R&D Division, Australia  
 **Independent Researcher — Quantum Motion & Tracking Systems**
 
 ---
@@ -268,9 +269,7 @@ MIT License
 # 15. Acknowledgements
 
 Developed through real-world high-speed motion tracking challenges.  
-Special thanks to  all helping hands. Special thanks to R&D Crew of  Humpty Doo Barramundi, Australia.  
+Special thanks to colleagues, mentors, and family for continuous support.
 
-# Installation guide
 
-You can install above whole package using command "pip install qsorta"
 
