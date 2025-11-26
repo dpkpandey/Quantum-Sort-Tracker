@@ -271,5 +271,7 @@ MIT License
 Developed through real-world high-speed motion tracking challenges.  
 Special thanks to colleagues, mentors, and family for continuous support.
 
-# You can install above whole package using command "pip install qsorta"
+#Installation guide
+
+You can install above whole package using command "pip install qsorta"
 
