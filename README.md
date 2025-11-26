@@ -174,6 +174,7 @@ QSort-A-Object-Tracker/
 └── docs/ # Theory, diagrams, notes
 
 
+
 ---
 
 # 9. Usage
@@ -270,8 +271,9 @@ MIT License
 
 Developed through real-world high-speed motion tracking challenges.  
 Special thanks to colleagues, mentors, and family for continuous support. Special 
-thanks to R&D crew ( Neville Doyle, Bradly Jones, Jason Clark) of Humpty Doo Barramundi. All this 
+thanks to R&D crew (Neville Doyle, Bradly Jones, Jason Clark) of Humpty Doo Barramundi. All this 
 idea came after doing R&D fish counting project. 
+
 
 
 
