@@ -192,15 +192,15 @@ This architecture enables stable 60–120 FPS operation depending on hardware co
 
 ```
 QSort-A-Object-Tracker/
-├── Mainfishcount_A_best.py    # Main application entry point
-├── qsort_tracker_A.py         # Core QSort-A tracking implementation
-├── last1.engine               # YOLO TensorRT engine file
-├── ll.mp4                     # Example test footage
+├── Mainfishcount_A_best.py    # Main application entry point, this is your counting program, you can have your own. 
+├── qsort_tracker_A.py         # Core QSort-A tracking implementation, this is the tracker you have it now here. This is small one. In future I will update with main tracker which works for 17 vectors.
+├── last1.engine               # YOLO TensorRT engine file, you can use any pytorch model, this is your trained model
+├── ll.mp4                     # Example test footage, this is footage, but instead of this you can use your camera feed as well
 ├── results/                   # Output directory for processed videos
 │   ├── raw/                   # Raw camera footage
 │   └── processed/             # Annotated tracking videos
 └── docs/                      # Documentation and diagrams
-    ├── theory.md
+    ├── theory.md              # This is the main concept behind this tracker, I will upload pdf file for this as well. 
     ├── architecture.md
     └── diagrams/
 ```
@@ -392,16 +392,16 @@ For questions, suggestions, or collaboration inquiries, please open an issue on 
 ## Frequently Asked Questions
 
 **Q: What hardware is recommended?**  
-A: NVIDIA GPU with CUDA support (RTX 3060 or better), 16GB+ RAM, modern multi-core CPU.
+A: NVIDIA GPU with CUDA support (RTX 3060 or better), 8GB+ RAM, modern multi-core CPU, it depends what you want to do, for complex system use better GPUs
 
 **Q: Can this track transparent or semi-transparent objects?**  
-A: Yes, as long as the detector (YOLO) can identify them. QSort-A handles the tracking.
+A: Yes, as long as the detector (YOLO) can identify them. QSort-A handles the tracking. This is first step of tracker only but for whole calculation or detection follow https://q-ots-website.pages.dev/ 
 
 **Q: What FPS can I expect?**  
 A: 60-120 FPS on modern hardware with GPU acceleration. CPU-only: 15-30 FPS.
 
 **Q: Does it work with custom YOLO models?**  
-A: Yes, any YOLO detector producing [x1, y1, x2, y2, confidence] format is compatible.
+A: Yes, any YOLO detector producing [x1, y1, x2, y2, confidence] format is compatible, you can make compatible with any existing models becuase this tracker works upto 17 verctors co-ordinates.
 
 **Q: How does it compare to DeepSORT?**  
 A: QSort-A uses motion physics instead of appearance features, making it more robust to visual changes and deformations.
@@ -409,3 +409,4 @@ A: QSort-A uses motion physics instead of appearance features, making it more ro
 ---
 
 *Last Updated: January 2025*
+
