@@ -1,4 +1,5 @@
-# QSort Physics Tracker  (Includes level4 optimised version)
+# QSort Physics Tracker — Level 4A optimesed version 
+This tracker is most recent one  and optimesed for level 4 ( it includes all level as you want to impliment)
 
 > **QuantumSort (QSort):** A Classical–Quantum Hybrid Framework for Nonlinear Motion Tracking  
 > **Author:** Deepak Pandey · Australia · ORCID: [0009-0006-5313-0222](https://orcid.org/0009-0006-5313-0222)  
@@ -9,7 +10,7 @@
 ## Table of Contents
 
 - [What Is QSort?](#what-is-qsort)
-- [Why Not Just Use Kalman / SORT / DeepSORT?](#why-not-just-use-kalman--sort--deepsort)
+- [Design Motivation](#design-motivation)
 - [Theoretical Foundations](#theoretical-foundations)
   - [1. Classical Motion State Vector (QPCMSV)](#1-classical-motion-state-vector-qpcmsv)
   - [2. Boltzmann Spatial Probability Field](#2-boltzmann-spatial-probability-field)
@@ -52,17 +53,11 @@ This repository contains **Level 4A (Debug2)** — the most instrumented build, 
 
 ---
 
-## Why Not Just Use Kalman / SORT / DeepSORT?
+## Design Motivation
 
-| Limitation | Kalman / SORT | QSort Solution |
-|---|---|---|
-| Assumes linear dynamics | ✗ fails on curves, spirals, sudden stops | ✔ jerk + curvature terms |
-| Gaussian noise only | ✗ fails in turbulent environments | ✔ Boltzmann field handles non-Gaussian spread |
-| No directional encoding | ✗ ID swaps on crossing paths | ✔ direction-independent IoU + angle-mismatch cost |
-| Covariance drift | ✗ long-term prediction degrades fast | ✔ wavepacket width re-collapses on detection |
-| Single-regime motion | ✗ can't model fast→slow→fast switches | ✔ Bloch-sphere multi-regime encoding |
-| ID reuse after death | ✗ causes ghost track associations | ✔ strict no-ID-reuse guarantee |
-| No physical plausibility cost | ✗ assigns any detection to any track | ✔ physics_mismatch penalises implausible jumps |
+QSort was designed to handle motion scenarios where linear-assumption trackers tend to struggle — specifically turbulent aquatic environments with curved trajectories, sudden accelerations, and frequent occlusions. The design choices (jerk, curvature, Boltzmann weighting, wavepacket-style uncertainty) each address a specific physical challenge observed during development.
+
+> **Note:** Formal benchmarking against other trackers (SORT, DeepSORT, ByteTrack, etc.) is ongoing. The claims above are based on design intent and observed behaviour during development — not yet on published comparative metrics. Contributions and test results are welcome.
 
 ---
 
