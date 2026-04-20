@@ -226,7 +226,7 @@ pip install tensorrt           # For inference optimization
 ### Setup
 
 ```bash
-git clone https://github.com/yourusername/QSort-A-Object-Tracker.git
+git clone https://github.com/dpkpandey/Quantum-Sort-Tracker
 cd QSort-A-Object-Tracker
 pip install -r requirements.txt
 ```
