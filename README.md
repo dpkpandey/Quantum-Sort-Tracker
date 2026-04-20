@@ -1,5 +1,6 @@
-# QSort Physics Tracker — Level 4A optimesed version 
-This tracker is most recent one  and optimesed for level 4 ( it includes all level as you want to impliment). Level 4 means it is the recent update on the tracker, as it is mentioned for debug.
+# QSort Physics Tracker — Level 4 optimesed version 
+This tracker is most recent one  and optimesed for level 4 ( it includes all level as you want to impliment). Level 4 means it is the recent update on the tracker, as it is mentioned for debug. As work is done, I will impliment all the level 6 very soon. As I need to work on theory as well
+
 
 > **QuantumSort (QSort):** A Classical–Quantum Hybrid Framework for Nonlinear Motion Tracking  
 > **Author:** Deepak Pandey · Australia · ORCID: [0009-0006-5313-0222](https://orcid.org/0009-0006-5313-0222)  
