@@ -373,7 +373,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 ### Development Setup
 
 ```bash
-git clone https://github.com/yourusername/QSort-A-Object-Tracker.git
+git clone https://github.com/dpkpandey/Quantum-Sort-Tracker.git
 cd QSort-A-Object-Tracker
 pip install -r requirements-dev.txt
 ```
