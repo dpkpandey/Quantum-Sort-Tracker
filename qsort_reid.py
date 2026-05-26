@@ -2,6 +2,7 @@
 # QSort ReID Backbone — Layer 7
 # Plugs into qsort_full.py as a fifth cost-matrix term.
 # Author: Deepak Pandey / extension for QSort framework
+# This is helper for qsort_tracker, which helps you to track more accurately.
 #
 # WHAT THIS FILE CONTAINS:
 #   1. QSortReIDBackbone  — MobileNetV3-small → 128-dim embedding
