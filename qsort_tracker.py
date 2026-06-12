@@ -1,7 +1,7 @@
 # ================================================================
-# QSort Physics Tracker --- Full 6-Layer Implementation updated recently 
+# QSort Physics Tracker --- Full 6-Layer Implementation updated 
 # Author: Deepak Pandey
-# Reviewed & fixed by: Auther
+
 #
 # LAYERS:
 #   L1 — QPCMSV extended classical state vector (16D)
@@ -12,7 +12,10 @@
 #   L6 — Multi-qubit motion tensor (8D regime fusion)
 # Most important part is in this code, most of the tracking system is still naive and untested yet in different datasets, however I just published because of time rectriction, if I may not continue 
 #It would be awesome if someone wants to enhance this code and make it better, but you might need littlebit knowledge of basic physics and quanutm mechanics. Where most of the approaches are defined in such a way
-#But it does not mean that it needs quantum hardware, it is just concept I borrow from there but I have also now idea whether it works or not. But while testing on my project it was ripper and worked so good. 
+#But it does not mean that it needs quantum hardware, it is just concept I borrow from there but I have also no idea whether it works or not.
+#But while testing on my project it was ripper and worked so good. 
+
+## for your specific task or work, you might need to finetune it with below parameters. Test it first with these defaults and if not then just manipulate it with some alter, which might sometimes helps. 
 
 
 import numpy as np
