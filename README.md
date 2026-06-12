@@ -1,5 +1,5 @@
-# QSort Physics Tracker — Level 4 optimesed version 
-This tracker is most recent one  and optimesed for level 4 ( it includes all level as you want to impliment). Level 4 means it is the recent update on the tracker, as it is mentioned for debug. As work is done, I will impliment all the level 6 very soon. As I need to work on theory as well
+# QSort Physics Tracker — Level 6 optimesed version 
+This tracker is most recent one  and optimesed for level 6 ( it includes all level as you want to impliment). This is indeed most recent one with the corresponding code, as it is mentioned for debug. As work is done, I will impliment all the level 6 very soon. As I need to work on theory as well
 
 
 > **QuantumSort (QSort):** A Classical–Quantum Hybrid Framework for Nonlinear Motion Tracking  
