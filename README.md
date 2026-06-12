@@ -1,503 +1,377 @@
-# QSort Physics Tracker — Level 6 optimesed version 
-This tracker is most recent one  and optimesed for level 6 ( it includes all level as you want to impliment). This is indeed most recent one with the corresponding code, as it is mentioned for debug. As work is done, I will impliment all the level 6 very soon. As I need to work on theory as well
+# QSort Physics Tracker
 
+**Author:** Deepak Pandey  
+**Version:** v2 (Full 6-Layer Implementation)
 
-> **QuantumSort (QSort):** A Classical–Quantum Hybrid Framework for Nonlinear Motion Tracking  
-> **Author:** Deepak Pandey · Australia · ORCID: [0009-0006-5313-0222](https://orcid.org/0009-0006-5313-0222)  
-> **License:** Free to use with citation · February 2026
+A multi-object tracker that fuses classical physics kinematics with concepts borrowed from quantum mechanics — wavepacket spreading, Bloch-sphere regime encoding, and multi-qubit tensor coupling — to achieve robust tracking under occlusion, crowding, and erratic motion. Originally developed and tested on fish tracking video; designed to be domain-agnostic.
+
+> **Note from the author:** Most of the tracking system is still experimental and largely untested on diverse datasets. The quantum-inspired components do not require quantum hardware — they borrow the mathematical formalism (Bloch spheres, tensor products) as a representational framework. If you want to build on this, a basic understanding of classical mechanics and quantum mechanics notation helps.
 
 ---
 
 ## Table of Contents
 
-- [What Is QSort?](#what-is-qsort)
-- [Design Motivation](#design-motivation)
-- [Theoretical Foundations](#theoretical-foundations)
-  - [1. Classical Motion State Vector (QPCMSV)](#1-classical-motion-state-vector-qpcmsv)
-  - [2. Boltzmann Spatial Probability Field](#2-boltzmann-spatial-probability-field)
-  - [3. Quantum-Inspired Wavepacket Dynamics](#3-quantum-inspired-wavepacket-dynamics)
-  - [4. Bloch-Sphere Motion Encoding](#4-bloch-sphere-motion-encoding)
-  - [5. Multi-Qubit Motion Tensor](#5-multi-qubit-motion-tensor)
-- [How the Tracker Works — Step by Step](#how-the-tracker-works--step-by-step)
-  - [PhysicsTrack Object](#physicstrack-object)
-  - [BoltzmannPredictor](#boltzmannpredictor)
-  - [Cost Matrix and Hungarian Assignment](#cost-matrix-and-hungarian-assignment)
-  - [Re-ID and Recovery Logic](#re-id-and-recovery-logic)
-  - [Track Lifecycle](#track-lifecycle)
-- [Output Format](#output-format)
-- [Parameters and Tuning Guide](#parameters-and-tuning-guide)
-  - [Global Constants](#global-constants)
-  - [Cost Function Weights](#cost-function-weights)
-  - [Reliability Score (R) Weights](#reliability-score-r-weights)
-  - [Boltzmann Energy Weights](#boltzmann-energy-weights)
-  - [Re-ID Thresholds](#re-id-thresholds)
-  - [Tracker Constructor Parameters](#tracker-constructor-parameters)
+- [Architecture Overview](#architecture-overview)
+- [Layer Descriptions](#layer-descriptions)
+- [Installation](#installation)
 - [Quick Start](#quick-start)
-- [Integration with YOLO](#integration-with-yolo)
-- [Debug Logging](#debug-logging)
-- [Citation](#citation)
-- [Roadmap](#roadmap)
+- [Fine-Tuning Parameters](#fine-tuning-parameters)
+- [API Reference](#api-reference)
+- [Output Format](#output-format)
+- [Ablation Testing](#ablation-testing)
+- [Changelog from Previous Version](#changelog-from-previous-version)
+- [Known Limitations](#known-limitations)
+- [Contributing](#contributing)
 
 ---
 
-## What Is QSort?
+## Architecture Overview
 
-**QSort (QuantumSort)** is a multi-object tracker that replaces the standard linear Kalman prediction model with a layered physics engine inspired by:
-
-- **Classical mechanics** — position, velocity, acceleration, jerk
-- **Statistical mechanics** — Boltzmann energy-based spatial probability fields
-- **Quantum mechanics** — wavepacket uncertainty evolution and Bloch-sphere regime encoding
-
-It was originally developed for fish tracking in aquaculture video analytics (Humpty Doo Barramundi R&D), where conventional trackers fail due to turbulence, curved trajectories, and sudden accelerations. The same framework directly applies to any system where objects move nonlinearly: molecular dynamics, drone tracking, crowd analytics, sports biomechanics, and robotics.
-
-This repository contains QSort — the most instrumented build, with full per-frame logging of every assignment decision, birth, death, recovery, and physics prediction.
+```
+Detection Input  →  [Confidence Gate MIN_CONF]
+                          ↓
+              ┌───────────────────────────┐
+              │     L1: QPCMSV            │  16D classical state vector
+              │  (pos, vel, acc, jerk,    │
+              │   momentum, curvature)    │
+              └────────────┬──────────────┘
+                           │
+          ┌────────────────┼─────────────────┐
+          ↓                ↓                 ↓
+  L2: Polynomial    L3: Wavepacket    L4: Boltzmann
+  Regression        Spreading         Spatial Field
+  (nonlinear        (uncertainty      (temperature-
+   prediction)       + collapse)       weighted pick)
+          └────────────────┬─────────────────┘
+                           ↓
+               L5: Bloch-Sphere Encoding
+               (3 qubits: direction, turn, speed)
+                           ↓
+               L6: Multi-Qubit Motion Tensor
+               (8D regime fusion + cost matrix)
+                           ↓
+              Hungarian Assignment → Track Update
+```
 
 ---
 
-## Design Motivation
+## Layer Descriptions
 
-QSort was designed to handle motion scenarios where linear-assumption trackers tend to struggle — specifically turbulent aquatic environments with curved trajectories, sudden accelerations, and frequent occlusions. The design choices (jerk, curvature, Boltzmann weighting, wavepacket-style uncertainty) each address a specific physical challenge observed during development.
+### L1 — QPCMSV: Extended Classical State Vector (16D)
 
-> **Note:** Formal benchmarking against other trackers (SORT, DeepSORT, ByteTrack, etc.) is ongoing. The claims above are based on design intent and observed behaviour during development — not yet on published comparative metrics. Contributions and test results are welcome.
+Each track maintains a 16-dimensional state:
 
----
+| Component | Variables |
+|-----------|-----------|
+| Position  | `x, y` |
+| Velocity  | `vx, vy` |
+| Acceleration | `ax, ay` |
+| Jerk | `jx, jy` |
+| Curvature | `kappa` |
+| Momentum (effective) | `px, py` |
+| Uncertainty | `sigma_p, sigma_theta` |
+| Reliability | `R` |
+| Bloch angles | `theta_A, theta_B, theta_C` |
 
-## Theoretical Foundations
-
-### 1. Classical Motion State Vector (QPCMSV)
-
-QSort tracks each object with a full **QPand Classical Motion State Vector**:
-
-```
-State = [x, y, vx, vy, ax, ay, jx, jy, curvature, σ_x, σ_y, σ_θ, m_eff, px, py, R]
-```
-
-| Symbol | Meaning |
-|---|---|
-| `x, y` | Bounding box centre |
-| `vx, vy` | Velocity (finite difference, 1-frame DT) |
-| `ax, ay` | Acceleration |
-| `jx, jy` | Jerk (rate of change of acceleration) |
-| `curvature` | `|vx·ay − vy·ax| / speed³` — how sharply the object is turning |
-| `σ_x, σ_y` | Positional uncertainty (std dev over history window) |
-| `σ_θ` | Angular uncertainty (std dev of heading angles) |
-| `m_eff` | Effective mass = `1 + speed` (simple model) |
-| `px, py` | Momentum = `m_eff · v` |
-| `R` | Reliability score ∈ [0, 1] |
-
-This extended state vector is what distinguishes QSort from trackers that carry only `[x, y, vx, vy]`.
+Curvature `kappa = |vx·ay − vy·ax| / speed³` captures how sharply an object is turning. Effective mass `meff = 1 + speed` scales momentum to penalise fast objects changing direction abruptly.
 
 ---
 
-### 2. Boltzmann Spatial Probability Field
+### L2 — Polynomial Regression Predictor
 
-Instead of a Kalman covariance ellipse, QSort uses a **Boltzmann-weighted probability distribution** over candidate next positions.
+Fits a degree-3 ridge-regularised polynomial to the **real detection history only** (not synthetic/predicted positions during occlusion). Window size adapts with reliability `R`:
 
-**Energy function** for an object state T:
+| R range | Window |
+|---------|--------|
+| > 0.7   | 12 frames |
+| 0.4–0.7 | 7 frames  |
+| < 0.4   | 4 frames  |
 
-```
-E(T) = 0.4·|v| + 0.7·|a| + 1.2·|j| + 1.8·κ + 1.5·(1−R) + 0.5·(σ_x+σ_y) + 0.3·σ_θ
-```
+Produces up to two candidate future positions fed into the Boltzmann selector.
 
-Higher energy = more chaotic / uncertain motion = wider spatial spread.
-
-**Effective temperature** (controls spread):
-
-```
-T_temp = base_temp · (1 + σ_x + σ_y + 0.5·σ_θ + (1−R))
-```
-
-**Boltzmann weight** for each candidate position:
-
-```
-w_i = exp(−E / T_temp)
-```
-
-The **predicted position** is the weighted expectation over 4 kinematic candidates (velocity-only, velocity+acceleration, velocity+acc+jerk, curvature-corrected). This is analogous to the Boltzmann distribution in statistical mechanics — high-energy, uncertain states spread their probability over a wider region of space.
+**Key flag:** `USE_L2_POLYNOMIAL = True`
 
 ---
 
-### 3. Quantum-Inspired Wavepacket Dynamics
+### L3 — Wavepacket Uncertainty Engine
 
-Each track carries an implicit **wavepacket** centred on its predicted position. The wavepacket width (uncertainty) evolves between frames:
+Models positional uncertainty as a Gaussian wavepacket that **spreads during occlusion** and **collapses on detection**:
 
-- **Spreads** when no detection is found (missed frames), analogous to free quantum propagation
-- **Collapses** when a detection is assigned, analogous to wavefunction collapse upon measurement
+- Diffusion rate: `D = DIFFUSION_BASE × (2 − R) + DIFFUSION_CURV × kappa`
+- Spreading: `σ_new = sqrt(σ² + D·dt)`
+- Collapse: on matched detection, `σ → SIGMA_MIN` and phase `φ` is updated
 
-The positional uncertainties `σ_x` and `σ_y` play the role of wavepacket width. The angular uncertainty `σ_θ` encodes the directional coherence of the wave. This is a classical analogue of Heisenberg-style uncertainty — as we become less sure of the object's state, the spatial probability field broadens.
+During occlusion, mu propagates using the **last real velocity** (not degraded synthetic velocities), preventing drift compounding.
 
----
-
-### 4. Bloch-Sphere Motion Encoding
-
-QSort conceptually encodes each object's motion regime as three coupled **qubits** on Bloch spheres:
-
-| Sphere | Encodes |
-|---|---|
-| **A — Direction Qubit** | Current heading angle relative to history mean |
-| **B — Turning Qubit** | Rate of direction change (curvature) |
-| **C — Speed-Regime Qubit** | Fast / slow / stopped regime |
-
-These three spheres are **classically coupled**: a fast-turning object in sphere B influences the position uncertainty in sphere A, etc. Regime switches (e.g., fish suddenly reversing direction) are represented as rotations on sphere C.
-
-In this Level 4A implementation, the Bloch encoding is reflected through the composite reliability score `R` and the curvature/jerk penalisation rather than as explicit qubit objects.
+**Key flag:** `USE_L3_WAVEPACKET = True`
 
 ---
 
-### 5. Multi-Qubit Motion Tensor
+### L4 — Boltzmann Spatial Probability Field
 
-The full motion state is the **tensor product** of the three qubit states:
+Rather than picking the geometrically closest candidate, a Boltzmann-weighted energy function selects the most physically consistent position:
 
 ```
-|Ψ⟩ = |Direction⟩ ⊗ |Turning⟩ ⊗ |Speed-Regime⟩
+E = displacement²/(2σ²) + β·Δv + α·|a| + γ·|κ|
+weight ∝ exp(−E / T)
 ```
 
-This 8-dimensional state manifold allows QSort to represent multiple simultaneous motion regimes. Classical analogues of quantum gates (rotation operators) drive transitions between states. In Level 4A, this manifests through the jerk and curvature terms in the cost and reliability functions.
+Temperature `T` heats up during missed frames (increasing tolerance) and resets to `TEMP_MIN` on detection (tightening the field). This naturally handles re-association after occlusion.
+
+**Key flag:** `USE_L4_BOLTZMANN = True`
 
 ---
 
-## How the Tracker Works — Step by Step
+### L5 — Bloch-Sphere Regime Encoding (3 Qubits)
 
-### PhysicsTrack Object
+Motion state is encoded onto three Bloch spheres:
 
-Each active object is a `PhysicsTrack` instance. On every matched frame:
+| Qubit | Encodes | θ range | φ range |
+|-------|---------|---------|---------|
+| A | Direction of travel | 0 (stationary) → π (fast) | Heading angle |
+| B | Turn sharpness | 0 (straight) → π (sharp) | Left / Right |
+| C | Speed regime | 0 (stopped) → π (burst) | Accel direction |
 
-1. **`update_bbox(det)`** — extracts bounding box and centre `(x, y)`
-2. **`update_state()`** — appends to rolling history and computes:
-   - Finite-difference velocity → acceleration → jerk
-   - Curvature from cross product: `|v × a| / |v|³`
-   - Positional and angular std dev over the last `HIST_LEN` frames
-   - Effective mass and momentum
-   - Reliability score `R = exp(−penalty)` where penalty sums jerk, curvature, and uncertainty contributions
-3. **`predict_candidates()`** — generates 4 physically motivated next positions:
-   - `C1`: velocity only
-   - `C2`: velocity + ½·acceleration
-   - `C3`: C2 + ⅙·jerk
-   - `C4`: curvature-corrected lateral displacement
+Speed thresholds scaled for real video (pixels/frame):
+- `SPEED_S1 = 2.0` px/frame — stopped → gliding
+- `SPEED_S2 = 15.0` px/frame — gliding → burst
 
-### BoltzmannPredictor
+**Key flag:** `USE_L5_BLOCH = True`
 
-Given a `PhysicsTrack`, the predictor:
+---
 
-1. Computes `E` (energy) from jerk, curvature, uncertainty, and `(1−R)`
-2. Computes `T_temp` (temperature) from uncertainty and `(1−R)`
-3. Assigns Boltzmann weights `w = exp(−E/T_temp)` to all 4 candidates
-4. Returns the weighted mean `(xp, yp)` as the predicted position
+### L6 — Multi-Qubit Motion Tensor (8D Regime Fusion)
 
-### Cost Matrix and Hungarian Assignment
-
-For N tracks and M detections, a cost matrix `C[N×M]` is built:
-
-```
-C[i,j] = 0.4 · dist(predicted_i, det_j)
-        + 80 · (1 − IoU(track_i_bbox, det_j_bbox))
-        + 1.1 · physics_mismatch(track_i, det_j)
-```
-
-Where `physics_mismatch` penalises:
-- Displacement deviation from expected velocity
-- Angle mismatch between motion direction and displacement vector
-- Acceleration and jerk magnitude
-- Curvature and uncertainty
-- Low reliability `(1 − R)`
-
-Any pair with `dist > 350px` or `IoU < 0.01` is hard-blocked (`C = 1e6`).
-
-The **Hungarian algorithm** (`scipy.optimize.linear_sum_assignment`) finds the globally optimal minimum-cost assignment.
-
-### Re-ID and Recovery Logic
-
-Before spawning a new track for an unmatched detection, QSort attempts **re-identification** against missed tracks:
+Combines the three qubit amplitudes into a `2×2×2` coupling tensor:
 
 ```python
-allow_reid(T, det):
-    T.missed <= 5        # not vanished too long
-    displacement <= 100px
-    T.R >= 0.3           # track was reliable before disappearing
+c[i, j, k] = α[i,j,k] · |A_i|² · |B_j|² · |C_k|² · decay
 ```
 
-If re-ID succeeds, the same track ID is restored. No ID is ever reused for a *different* object — ID uniqueness is globally guaranteed via a monotonically incrementing `next_id` counter.
+where `decay = exp(−λ₁|κ| − λ₂|a| − λ₃/R)` penalises unstable states.
 
-### Track Lifecycle
+The tensor mismatch between track and candidate detection is used as a cost term in the assignment matrix, rewarding motions that are physically consistent with the track's current regime.
 
+Alpha coupling values are tunable:
+
+```python
+TENSOR_ALPHA[1, 1, 0] = 1.2   # direction + turn
+TENSOR_ALPHA[0, 1, 1] = 1.2   # turn + burst
+TENSOR_ALPHA[1, 0, 1] = 1.0   # direction + burst
+TENSOR_ALPHA[1, 1, 1] = 1.5   # all three (strongest)
 ```
-Detection → Birth (new ID)
-         ↓
-    update() each frame it is matched
-         ↓
-    mark_missed() when not matched (up to max_missed frames)
-         ↓
-    allow_reid() attempt on reappearance (within reid_gap frames)
-         ↓
-    _cleanup() removes tracks with missed > max_missed
-```
+
+**Key flag:** `USE_L6_TENSOR = True`
 
 ---
 
-## Output Format
+## Installation
 
-`tracker.update(dets)` returns a NumPy array of shape `(N, 18)`:
-
-| Index | Field | Description |
-|---|---|---|
-| 0–3 | `x1, y1, x2, y2` | Bounding box |
-| 4 | `id` | Unique track ID (never reused) |
-| 5–6 | `vx, vy` | Velocity (px/frame) |
-| 7–8 | `ax, ay` | Acceleration (px/frame²) |
-| 9–10 | `jx, jy` | Jerk (px/frame³) |
-| 11 | `curvature` | Path curvature (1/px) |
-| 12–13 | `px, py` | Momentum = m_eff · v |
-| 14–15 | `sigma_x, sigma_y` | Positional uncertainty (px) |
-| 16 | `sigma_theta` | Angular uncertainty (radians) |
-| 17 | `R` | Reliability ∈ [0, 1] |
-
-Only tracks with `missed == 0` (actively matched this frame) are exported.
-
----
-
-## Parameters and Tuning Guide
-
-### Global Constants
-
-```python
-DT = 1.0        # Time step between frames (set to 1/fps for real-time scaling)
-HIST_LEN = 15   # Rolling history window for physics computation
-EPS = 1e-6      # Numerical stability floor
+```bash
+pip install numpy scipy
 ```
 
-**Tuning advice:**
-- Increase `HIST_LEN` (e.g., 20–30) for smoother physics in slow-moving scenes; decrease (e.g., 5–8) for fast, chaotic motion where old history misleads predictions.
-- Set `DT = 1.0/fps` (e.g., `1/30` for 30fps video) if you want velocity in px/sec rather than px/frame.
+No other dependencies required. No quantum hardware needed.
 
----
-
-### Cost Function Weights
-
-In `build_cost_matrix`:
-
-```python
-C[i,j] = 0.4 * dist       # Euclidean distance weight
-        + 80 * (1 - iou)   # IoU mismatch weight
-        + 1.1 * phys_cost  # Physics mismatch weight
-```
-
-| Parameter | Default | When to Increase | When to Decrease |
-|---|---|---|---|
-| Distance weight `0.4` | `0.4` | Sparse scenes, large gaps | Dense scenes, small objects |
-| IoU weight `80` | `80` | Objects with stable sizes | Objects that resize or deform |
-| Physics weight `1.1` | `1.1` | Need strict physical plausibility | Objects with very erratic motion |
-| `dist > 350` hard block | `350px` | High-res video, fast objects | Low-res or slow scenes |
-| `IoU < 0.01` hard block | `0.01` | Mostly keep default | — |
-
-In `physics_mismatch`:
-
-```python
-cost = 0.3*vel_dev + 1.0*angle_diff + 0.6*acc_pen + 1.0*jerk_pen
-     + 1.2*curvature + 0.4*(sigma_x+sigma_y) + 0.6*(1−R)
-```
-
-- **`angle_diff` weight (1.0):** Most important for direction-sensitive scenes (fish, drones). Lower to `0.3–0.5` if objects frequently reverse direction (e.g., brownian motion).
-- **`jerk_pen` weight (1.0):** Lower to `0.5` for highly erratic motion (insects, particles). Raise to `2.0` for smooth trajectories (vehicles).
-- **`curvature` weight (1.2):** Lower to `0.5` for objects that spiral or make tight turns.
-
----
-
-### Reliability Score (R) Weights
-
-In `PhysicsTrack.update_state`:
-
-```python
-penalty = 0.5*jmag + 0.4*curvature + 0.3*sigma_x + 0.3*sigma_y + 0.2*sigma_theta
-R = exp(-penalty)
-```
-
-| Parameter | Effect |
-|---|---|
-| Jerk weight `0.5` | Higher = `R` drops faster on sudden accelerations |
-| Curvature weight `0.4` | Higher = tight turns reduce reliability more |
-| `sigma_x/y` weights `0.3` | Higher = positional spread degrades reliability more |
-| `sigma_theta` weight `0.2` | Higher = directional variance degrades reliability more |
-
-**Tuning advice:** If `R` is collapsing too fast (tracks dying prematurely), reduce all weights by ~30%. If `R` stays too high on clearly bad tracks, increase jerk/curvature weights.
-
----
-
-### Boltzmann Energy Weights
-
-In `BoltzmannPredictor.compute_energy`:
-
-```python
-E = 0.4*|v| + 0.7*|a| + 1.2*|j| + 1.8*κ + 1.5*(1−R) + 0.5*(σ_x+σ_y) + 0.3*σ_θ
-```
-
-In `BoltzmannPredictor.compute_temperature`:
-
-```python
-T_temp = base_temp * (1 + σ_x + σ_y + 0.5*σ_θ + (1−R))
-base_temp = 1.0   # constructor default
-```
-
-| Parameter | Effect |
-|---|---|
-| `base_temp` | Global scale of prediction spread. Raise (e.g., 2.0–5.0) for very unpredictable motion; lower (0.3–0.5) for smooth motion |
-| Jerk weight `1.2` | Dominant driver of energy in erratic motion |
-| Curvature weight `1.8` | Dominant for spiraling/turning objects |
-| `(1−R)` weight `1.5` | Penalises unreliable tracks heavily |
-
----
-
-### Re-ID Thresholds
-
-In `allow_reid`:
-
-```python
-T.missed <= 5     # Max frames a track can be invisible before reid is refused
-displacement <= 100px  # Max pixels the object can have moved while hidden
-T.R >= 0.3        # Min reliability required for a track to be recoverable
-```
-
-| Parameter | Raise when... | Lower when... |
-|---|---|---|
-| `missed <= 5` | Objects frequently occlude for longer periods | Short occlusions only; want strict matching |
-| `displacement <= 100px` | Fast objects, high FPS | Slow objects or low FPS |
-| `T.R >= 0.3` | Want aggressive recovery | Want conservative recovery (fewer false re-IDs) |
-
----
-
-### Tracker Constructor Parameters
-
-```python
-QSortPhysicsTracker(max_missed=8, reid_gap=5)
-```
-
-| Parameter | Default | Description |
-|---|---|---|
-| `max_missed` | `8` | Frames a track survives without a match before deletion |
-| `reid_gap` | `5` | Reserved for future use (currently re-ID controlled by `allow_reid`) |
-
-**Tuning advice:**
-- `max_missed = 8` is good for 25–30 fps video. Scale proportionally to FPS: for 60fps, consider 15–20; for 10fps, use 4–5.
-- For high-occlusion scenes (crowded tanks, overlapping paths), raise `max_missed` to 12–15.
+Python 3.9+ recommended.
 
 ---
 
 ## Quick Start
 
 ```python
-import numpy as np
 from qsort_tracker import QSortPhysicsTracker
 
-tracker = QSortPhysicsTracker(max_missed=8)
+# Initialise once per video sequence
+tracker = QSortPhysicsTracker(frame_w=1920, frame_h=1080)
 
-# dets: list of [x1, y1, x2, y2, confidence] per frame
-frame_detections = [
-    [100, 200, 150, 250, 0.9],
-    [300, 100, 360, 155, 0.85],
+# Each detection: [x1, y1, x2, y2, confidence]
+detections = [
+    [120, 80, 170, 130, 0.91],
+    [300, 200, 350, 250, 0.87],
 ]
 
-result = tracker.update(np.array(frame_detections))
-
-# result shape: (N, 18)
-# Columns: x1 y1 x2 y2 | id | vx vy | ax ay | jx jy | curvature | px py | sx sy stheta | R
-for row in result:
-    x1, y1, x2, y2, tid = row[:5].astype(int)
-    vx, vy = row[5], row[6]
-    R = row[17]
-    print(f"ID={tid}  bbox=({x1},{y1},{x2},{y2})  v=({vx:.1f},{vy:.1f})  R={R:.3f}")
+# Call once per frame
+output = tracker.update(detections)
+# output: np.array of shape (N, 20) — one row per confirmed track
 ```
 
----
-
-## Integration with YOLO
+For multi-session use, reset the ID counter between sessions:
 
 ```python
-from ultralytics import YOLO
-import cv2
-import numpy as np
-from qsort_tracker import QSortPhysicsTracker
-
-model = YOLO("yolov8n.pt")
-tracker = QSortPhysicsTracker(max_missed=8)
-cap = cv2.VideoCapture("video.mp4")
-
-while cap.isOpened():
-    ret, frame = cap.read()
-    if not ret:
-        break
-
-    results = model(frame, verbose=False)[0]
-    boxes = results.boxes
-
-    dets = []
-    for box, conf in zip(boxes.xyxy.cpu().numpy(), boxes.conf.cpu().numpy()):
-        dets.append([*box, float(conf)])
-
-    tracks = tracker.update(np.array(dets) if dets else np.empty((0, 5)))
-
-    for row in tracks:
-        x1, y1, x2, y2, tid = int(row[0]), int(row[1]), int(row[2]), int(row[3]), int(row[4])
-        R = row[17]
-        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-        cv2.putText(frame, f"ID:{tid} R:{R:.2f}", (x1, y1-10),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
-
-    cv2.imshow("QSort", frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-
-cap.release()
-cv2.destroyAllWindows()
+from qsort_tracker import reset_id_counter
+reset_id_counter(start=1)
 ```
 
 ---
 
-## Debug Logging
+## Fine-Tuning Parameters
 
-All events are written to `qsort_debug_log.txt`, overwritten each run. Log entries include:
+Start with defaults. If tracking quality is poor for your data, adjust these in order:
 
-| Tag | Meaning |
-|---|---|
-| `[BIRTH]` | New track spawned |
-| `[ASSIGN]` | Track matched to detection with cost value |
-| `[ASSIGN FAIL]` | Hungarian match rejected (cost > 1e5) |
-| `[MISS]` | Track not matched; missed counter incremented |
-| `[REID]` | Track recovered via re-identification |
-| `[NEW]` | New track born from unmatched detection |
-| `[DELETE]` | Track purged (exceeded `max_missed`) |
+### Detection Gate
 
-To disable logging in production, replace the `D()` function body with `pass`.
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `MIN_CONF` | 0.25 | Minimum detector confidence accepted |
+
+### Distance Gate
+
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `BOLTZ_DIST_FRAC` | 0.16 | Search radius as fraction of frame diagonal (~25% of 1080p diagonal) |
+
+### Track Lifecycle
+
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `MAX_MISSED` | 50 | Frames before track is deleted |
+| `BIRTH_CONFIRM` | 2 | Matches before track is exported |
+| `MIN_AGE_DELETE` | 4 | Never delete tracks younger than this |
+
+### Reliability (R)
+
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `R_INIT` | 0.80 | Starting reliability |
+| `R_BOOST` | 0.04 | Per matched frame increase |
+| `R_DECAY` | 0.03 | Per missed frame decrease |
+| `R_FLOOR_ACTIVE` | 0.12 | Floor below which unconfirmed tracks die |
+
+### Association Cost Weights (must sum considerations)
+
+| Parameter | Default | Term |
+|-----------|---------|------|
+| `COST_DIST_W` | 0.35 | Euclidean distance |
+| `COST_BOLTZ_W` | 0.25 | Boltzmann energy |
+| `COST_DIR_W` | 0.20 | Direction alignment |
+| `COST_TENSOR_W` | 0.10 | Tensor mismatch |
+| `COST_IOU_W` | 0.10 | Inverse IoU |
+
+All terms are normalised to `[0, 1]` before weighting, so the weights are directly comparable.
+
+### Speed Thresholds (L5)
+
+| Parameter | Default | Notes |
+|-----------|---------|-------|
+| `SPEED_S1` | 2.0 px/frame | Stopped → Gliding |
+| `SPEED_S2` | 15.0 px/frame | Gliding → Burst |
+
+Adjust these for your camera resolution and subject speed.
 
 ---
 
-## Citation
+## API Reference
 
-If you use QSort in your research or product, please cite:
+### `QSortPhysicsTracker(frame_w, frame_h)`
 
-```bibtex
-@monograph{pandey2026qsort,
-  title   = {QuantumSort (QSort): A Classical–Quantum Hybrid Framework for Nonlinear Motion Tracking},
-  author  = {Deepak Pandey},
-  year    = {2026},
-  month   = {February},
-  note    = {Dense Research Monograph. Physics + Machine Learning + Biological Systems},
-  orcid   = {0009-0006-5313-0222}
+| Argument | Type | Description |
+|----------|------|-------------|
+| `frame_w` | int | Frame width in pixels |
+| `frame_h` | int | Frame height in pixels |
+
+### `.update(dets) → np.ndarray`
+
+| Argument | Type | Description |
+|----------|------|-------------|
+| `dets` | list of `[x1, y1, x2, y2, conf]` | Raw detections for this frame |
+
+Returns `np.ndarray` of shape `(N, 20)`. Empty array `(0, 20)` if no confirmed tracks.
+
+### `reset_id_counter(start=1)`
+
+Resets the global track ID counter. Call between independent sessions.
+
+---
+
+## Output Format
+
+Each row in the output array contains 20 values:
+
+| Index | Field | Description |
+|-------|-------|-------------|
+| 0–3 | `x1, y1, x2, y2` | Bounding box |
+| 4 | `id` | Track ID (integer) |
+| 5–6 | `vx, vy` | Velocity (px/frame) |
+| 7–8 | `ax, ay` | Acceleration (px/frame²) |
+| 9–10 | `jx, jy` | Jerk (px/frame³) |
+| 11 | `kappa` | Curvature |
+| 12–13 | `px, py` | Effective momentum |
+| 14 | `sigma_p` | Positional uncertainty |
+| 15 | `sigma_theta` | Angular uncertainty |
+| 16 | `R` | Reliability [0, 1] |
+| 17–19 | `theta_A, theta_B, theta_C` | Bloch sphere angles |
+
+---
+
+## Ablation Testing
+
+Test all 32 layer combinations (on/off for L2–L6) across your scenarios:
+
+```python
+from qsort_tracker import run_ablation
+
+scenarios = {
+    "open_water": list_of_det_lists_scenario_1,
+    "crowded":    list_of_det_lists_scenario_2,
 }
+
+results = run_ablation(scenarios, frame_w=1920, frame_h=1080)
 ```
 
----
-
-## Roadmap
-
-- [ ] Full Bloch-sphere qubit objects with explicit state vectors
-- [ ] Wavepacket width as a standalone object (explicit `σ` evolution equations)
-- [ ] Polynomial regression trajectory prediction (degree-configurable)
-- [ ] Multi-qubit tensor product state with classical entanglement coupling
-- [ ] GPU-accelerated cost matrix via CUDA/CuPy
-- [ ] Count logic module (companion to tracker)
-- [ ] MOT benchmark evaluation script (HOTA, MOTA, IDF1)
-- [ ] Real-time multi-threaded pipeline for aquaculture deployment
+Prints a comparison table of unique track births per scenario per configuration. Useful for identifying which layers contribute to your specific dataset.
 
 ---
 
-*This software is distributed freely. Anyone is welcome to use and implement it in their project by citing this work.*  
-*— Deepak Pandey, March 2026*
+## Changelog from Previous Version
+
+| Tag | Fix |
+|-----|-----|
+| `[C1]` | Confirmed track status is permanent — no oscillation |
+| `[C2]` | Double R modification eliminated — single unified R system |
+| `[C3]` | All cost terms normalised to [0,1] — weights now meaningful |
+| `[H1]` | Polynomial fits real detection history only (separate `real_hist`) |
+| `[H2]` | Bloch speed thresholds corrected for real video scale |
+| `[H3]` | Distance gate derived from frame diagonal, not hardcoded px |
+| `[H4]` | `BlochEngine` + `TensorEngine` are module-level singletons |
+| `[H5]` | Debug logging uses Python `logging`, not file I/O |
+| `[H6]` | Python `or` bug fixed in `_poly_predict_next` |
+| `[M1]` | Re-ID uses predicted `mu_x` not stale `x` |
+| `[M2]` | `bbox` always stored as numpy array |
+| `[M3]` | `qs_safe_norm` alias removed |
+| `[M4]` | ID counter is thread-safe with a lock |
+| `[M5]` | Curvature smoothed over 3-frame velocity window |
+| `[M6]` | `MIN_CONF` filters low-confidence detections before cost matrix |
+| `[L1]` | Tensor alpha values exposed as tunable parameters |
+| `[L2]` | Frame size passed to tracker init for resolution-aware thresholds |
+| `[L3]` | Ablation runner included as `run_ablation()` |
+
+---
+
+## Known Limitations
+
+- **Untested on diverse datasets** — validated on fish tracking video; may need re-tuning of speed thresholds, distance fractions, and cost weights for other domains (pedestrians, vehicles, drones, etc.).
+- **Single-class** — no class-conditioned association; detections from different object classes are treated identically.
+- **No appearance model** — purely motion-based; re-ID under long occlusion relies on kinematics alone.
+- **Fixed frame rate** — `DT = 1.0` assumes constant frame interval; variable-FPS video will need `DT` to reflect actual elapsed time.
+- **2D only** — all physics operate in image-plane coordinates.
+
+---
+
+## Contributing
+
+If you want to extend this tracker, useful directions include:
+
+- Appearance embedding integration (ReID features alongside the cost matrix)
+- Variable `DT` support for non-constant frame rates
+- 3D extension using stereo or depth-camera input
+- Benchmarking on MOTChallenge or Fish4Knowledge datasets
+- Domain-specific parameter sweeps (drones, vehicles, sports)
+
+Basic familiarity with classical mechanics (velocity, curvature) and quantum mechanics notation (Bloch sphere, tensor products) is helpful but the code itself is pure NumPy/SciPy.
+
+---
+
+## License
+
+No license is specified by the author. Contact Deepak Pandey before redistributing or using in production.
