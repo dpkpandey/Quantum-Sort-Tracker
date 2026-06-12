@@ -374,4 +374,4 @@ Basic familiarity with classical mechanics (velocity, curvature) and quantum mec
 
 ## License
 
-No license is specified by the author. Contact Deepak Pandey before redistributing or using in production.
+Contact Deepak Pandey  for production use, however it is free for testing and research purposes.
