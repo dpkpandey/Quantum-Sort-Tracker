@@ -1,7 +1,7 @@
 # QSort Physics Tracker
 
 **Author:** Deepak Pandey  
-**Version:** v2 (Full 6-Layer Implementation)
+**Version:** version 2 (Full 6-Layer Implementation, added more dimensionality on version 1)
 
 A multi-object tracker that fuses classical physics kinematics with concepts borrowed from quantum mechanics — wavepacket spreading, Bloch-sphere regime encoding, and multi-qubit tensor coupling — to achieve robust tracking under occlusion, crowding, and erratic motion. Originally developed and tested on fish tracking video; designed to be domain-agnostic.
 
