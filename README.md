@@ -374,4 +374,4 @@ Basic familiarity with classical mechanics (velocity, curvature) and quantum mec
 
 ## License
 
-Contact author for further information, however it is free for any kind of use without any warrenty.
+Contact author for further information, however it has MIT license and free for any kind of use without any warrenty.
