@@ -1,8 +1,8 @@
 # ================================================================
-# QSort Physics Tracker --- Full 6-Layer Implementation updated 
+# QSort Physics Tracker --- Full 6-Layer Implementation updated from version 1
 # Author: Deepak Pandey
 
-#
+# These are implimentation layers updated
 # LAYERS:
 #   L1 — QPCMSV extended classical state vector (16D)
 #   L2 — Polynomial regression nonlinear prediction
